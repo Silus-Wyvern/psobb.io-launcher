@@ -8,10 +8,10 @@ namespace PsobbLauncher
     public sealed class GpuAdapter
     {
         /// <summary>Human-readable name, e.g. "AMD Radeon RX 7600 XT".</summary>
-        public string Name { get; set; }
+        public string Name { get; set; } = "";
 
         /// <summary>Windows device key (\\.\DISPLAY1). Not stable; do not persist.</summary>
-        public string DeviceName { get; set; }
+        public string DeviceName { get; set; } = "";
 
         /// <summary>True when this adapter drives the primary display.</summary>
         public bool IsPrimary { get; set; }
@@ -60,7 +60,7 @@ namespace PsobbLauncher
 
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         private static extern bool EnumDisplayDevices(
-            string lpDevice, uint iDevNum, ref DISPLAY_DEVICE lpDisplayDevice,
+            string? lpDevice, uint iDevNum, ref DISPLAY_DEVICE lpDisplayDevice,
             uint dwFlags);
 
         /// <summary>
@@ -71,7 +71,7 @@ namespace PsobbLauncher
         public static List<GpuAdapter> Enumerate()
         {
             var found = new List<GpuAdapter>();
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (!OperatingSystem.IsWindows())
                 return found;
 
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

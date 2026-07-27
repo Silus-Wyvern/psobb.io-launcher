@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Runtime.InteropServices;
 
 namespace PsobbLauncher
 {
@@ -24,9 +23,6 @@ namespace PsobbLauncher
         private const string RegPath =
             @"Software\Microsoft\DirectX\UserGpuPreferences";
 
-        private static bool OnWindows =>
-            RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-
         /// <summary>
         /// Current preference for an executable, or null if none is set.
         /// Parses the GpuPreference token out of the combined string rather than
@@ -34,10 +30,10 @@ namespace PsobbLauncher
         /// </summary>
         public static int? Read(string exePath)
         {
-            if (!OnWindows || string.IsNullOrWhiteSpace(exePath)) return null;
+            if (!OperatingSystem.IsWindows() || string.IsNullOrWhiteSpace(exePath)) return null;
 
             using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(RegPath);
-            string raw = key?.GetValue(Path.GetFullPath(exePath)) as string;
+            string? raw = key?.GetValue(Path.GetFullPath(exePath)) as string;
             if (string.IsNullOrEmpty(raw)) return null;
 
             foreach (string part in raw.Split(';'))
@@ -62,7 +58,7 @@ namespace PsobbLauncher
         /// </summary>
         public static bool Write(string exePath, int preference)
         {
-            if (!OnWindows || string.IsNullOrWhiteSpace(exePath)) return false;
+            if (!OperatingSystem.IsWindows() || string.IsNullOrWhiteSpace(exePath)) return false;
             if (preference < 0 || preference > 2) return false;
 
             string full = Path.GetFullPath(exePath);

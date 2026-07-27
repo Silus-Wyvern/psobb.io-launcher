@@ -46,7 +46,7 @@ namespace PsobbLauncher
         /// absent. Returns raw text - compare against <see cref="AutoValue"/>
         /// rather than assuming it parses as a number.
         /// </summary>
-        public static string ReadAdapters(string gameDir)
+        public static string? ReadAdapters(string gameDir)
         {
             string path = PathFor(gameDir);
             if (!File.Exists(path)) return null;
@@ -61,7 +61,7 @@ namespace PsobbLauncher
         /// </summary>
         public static int? ReadAdapterOrdinal(string gameDir)
         {
-            string raw = ReadAdapters(gameDir);
+            string? raw = ReadAdapters(gameDir);
             if (string.IsNullOrEmpty(raw)) return null;
             return int.TryParse(raw, out int n) && n >= 1 ? n : (int?)null;
         }
