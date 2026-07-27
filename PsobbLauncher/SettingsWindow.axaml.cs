@@ -423,6 +423,7 @@ namespace PsobbLauncher
                 int idx = ComboGpu.SelectedIndex;
                 if (idx <= 0)
                 {
+                    DgVoodooConfig.WritePreferredAdapterName(gameDir, null);
                     DgVoodooConfig.SetAutomatic(gameDir);
                 }
                 else if (idx - 1 < _gpuAdapters.Count)
@@ -431,6 +432,9 @@ namespace PsobbLauncher
                     // the window opened could already be stale if displays
                     // changed in between, and a wrong ordinal crashes the client.
                     var chosen = _gpuAdapters[idx - 1];
+                    // Remember the NAME so the launch path can re-resolve it.
+                    // Ordinals go stale when displays change.
+                    DgVoodooConfig.WritePreferredAdapterName(gameDir, chosen.Name);
                     int? ordinal = GpuAdapters.ResolveOrdinal(chosen.Name);
                     if (ordinal.HasValue)
                         DgVoodooConfig.SetAdapterOrdinal(gameDir, ordinal.Value);

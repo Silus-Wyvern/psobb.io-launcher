@@ -102,6 +102,59 @@ namespace PsobbLauncher
             return true;
         }
 
+PLACEHOLDER_MARKER
+
+        // --- remembering WHICH card was chosen ---------------------------
+        // Stored as the adapter's NAME in a sidecar file beside dgVoodoo.conf,
+        // never as an ordinal. Two reasons:
+        //
+        //  * ordinals follow display order, so replugging a monitor or changing
+        //    the primary display renumbers them. A stored number can end up
+        //    pointing at a card with no display, which CRASHES the client.
+        //    Verified: pulling a dummy plug and launching without reopening
+        //    Settings did exactly that.
+        //  * this setting is per-INSTALL, not per-profile - dgVoodoo.conf sits
+        //    beside the exe, so two profiles sharing an install necessarily
+        //    share the card. Keeping it next to dgVoodoo.conf keeps that honest.
+        public const string PreferredFileName = "dgVoodoo.launcher-gpu";
+
+        private static string PreferredPathFor(string gameDir) =>
+            Path.Combine(gameDir, PreferredFileName);
+
+        /// <summary>
+        /// The adapter name the user picked, or null for automatic.
+        /// </summary>
+        public static string? ReadPreferredAdapterName(string gameDir)
+        {
+            try
+            {
+                string path = PreferredPathFor(gameDir);
+                if (!File.Exists(path)) return null;
+                string name = File.ReadAllText(path).Trim();
+                return name.Length == 0 ? null : name;
+            }
+            catch { return null; }
+        }
+
+        /// <summary>
+        /// Records the picked adapter name, or clears it when null/empty so the
+        /// next launch leaves dgVoodoo on automatic.
+        /// </summary>
+        public static void WritePreferredAdapterName(string gameDir, string? name)
+        {
+            try
+            {
+                string path = PreferredPathFor(gameDir);
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    if (File.Exists(path)) File.Delete(path);
+                    return;
+                }
+                File.WriteAllText(path, name.Trim() + "\r\n");
+            }
+            catch { /* best effort - a missing preference just means automatic */ }
+        }
+
         public static bool SetAutomatic(string gameDir) =>
             WriteAdapters(gameDir, AutoValue);
 

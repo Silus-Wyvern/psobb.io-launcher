@@ -215,6 +215,34 @@ namespace PsobbLauncher
                     return;
                 }
 
+                // Re-resolve the preferred graphics card at LAUNCH, not just when
+                // Settings is saved. dgVoodoo's Adapters ordinals follow display
+                // order, so unplugging a monitor or changing the primary display
+                // renumbers them - and a stale ordinal pointing at a card with no
+                // display crashes the client rather than falling back. Verified
+                // by pulling a dummy plug and launching without reopening
+                // Settings.
+                if (DgVoodooConfig.Exists(root))
+                {
+                    string? wanted = DgVoodooConfig.ReadPreferredAdapterName(root);
+                    if (!string.IsNullOrWhiteSpace(wanted))
+                    {
+                        int? ord = GpuAdapters.ResolveOrdinal(wanted);
+                        if (ord.HasValue)
+                        {
+                            DgVoodooConfig.SetAdapterOrdinal(root, ord.Value);
+                        }
+                        else
+                        {
+                            // Chosen card is gone, or no longer has a display.
+                            // Fall back to automatic so the game still starts.
+                            DgVoodooConfig.SetAutomatic(root);
+                            StatusText.Text =
+                                $"'{wanted}' has no display attached - using the default card.";
+                        }
+                    }
+                }
+
                 // Apply a per-install psobb.pat if one was dropped in this
                 // profile's game dir. Abort the launch if the swap fails, so we
                 // never start a half-patched install.
