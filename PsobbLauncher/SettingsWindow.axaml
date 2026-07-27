@@ -73,6 +73,31 @@
                                          <ComboBoxItem Content="Virtual Fullscreen"/>
                                     </ComboBox>
                                 </Grid>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="140"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Label Content="Graphics card:" Foreground="#e0f0ff" VerticalAlignment="Center"/>
+                                    <ComboBox x:Name="ComboGpu" Grid.Column="1" Height="32" HorizontalAlignment="Stretch"/>
+                                </Grid>
+
+                                <TextBlock x:Name="TextGpuHint" Foreground="#7fa8c0" FontSize="11"
+                                           TextWrapping="Wrap" Margin="0,-8,0,0"/>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="140"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Label Content="Windows GPU:" Foreground="#e0f0ff" VerticalAlignment="Center"/>
+                                    <ComboBox x:Name="ComboWindowsGpu" Grid.Column="1" Height="32" HorizontalAlignment="Stretch">
+                                        <ComboBoxItem Content="Let Windows decide"/>
+                                        <ComboBoxItem Content="Power saving (integrated)"/>
+                                        <ComboBoxItem Content="High performance (discrete)"/>
+                                    </ComboBox>
+                                </Grid>
                             </StackPanel>
                         </Border>
 

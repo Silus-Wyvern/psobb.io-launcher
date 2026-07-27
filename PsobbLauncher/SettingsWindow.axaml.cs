@@ -210,6 +210,17 @@ namespace PsobbLauncher
             {
                 Debug.WriteLine("Error loading settings: " + ex.Message);
             }
+
+            // Kept outside the try above so a failure reading the registry or
+            // the cfg files does not leave the GPU controls unpopulated.
+            try
+            {
+                LoadGpuSettings(GetGameDirectory());
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Error loading GPU settings: " + ex.Message);
+            }
         }
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
@@ -319,6 +330,8 @@ namespace PsobbLauncher
                     }
                 }
                 
+                SaveGpuSettings(root);
+
                 ApplyGraphicsFramework();
 
                 this.Close(true);
@@ -326,6 +339,113 @@ namespace PsobbLauncher
             catch (Exception ex)
             {
                 Debug.WriteLine("Error saving: " + ex.Message);
+            }
+        }
+
+        // --- GPU selection -------------------------------------------------
+        // Two independent levers, because they solve different problems:
+        //   ComboGpu        -> dgVoodoo's Adapters key. Picks WHICH CARD the
+        //                      wrapper renders on. Only works for cards that
+        //                      currently have a display (or dummy plug) attached.
+        //   ComboWindowsGpu -> Windows' per-app preference. Only expresses
+        //                      power-saving vs high-performance, so it cannot
+        //                      tell two discrete cards apart - but it is the
+        //                      right lever on hybrid laptops where the dGPU has
+        //                      no attachable display.
+        private List<GpuAdapter> _gpuAdapters = new List<GpuAdapter>();
+
+        private void LoadGpuSettings(string gameDir)
+        {
+            _gpuAdapters = GpuAdapters.Enumerate();
+
+            ComboGpu.Items.Clear();
+            ComboGpu.Items.Add(new ComboBoxItem { Content = "Automatic" });
+            foreach (var a in _gpuAdapters)
+                ComboGpu.Items.Add(new ComboBoxItem { Content = a.ToString() });
+            ComboGpu.SelectedIndex = 0;
+
+            bool haveConf = DgVoodooConfig.Exists(gameDir);
+            ComboGpu.IsEnabled = haveConf && _gpuAdapters.Count > 1;
+
+            if (!haveConf)
+            {
+                TextGpuHint.Text = "dgVoodoo.conf not found in the game folder, "
+                    + "so the graphics card cannot be set here.";
+            }
+            else if (_gpuAdapters.Count <= 1)
+            {
+                TextGpuHint.Text = "Only one graphics card has a display attached, "
+                    + "so there is nothing to choose. A card with no monitor (or "
+                    + "dummy plug) cannot be selected - the game will not start on it.";
+            }
+            else
+            {
+                TextGpuHint.Text = "Only cards with a display attached are listed. "
+                    + "If the game ends up on the wrong one, try the other entry.";
+            }
+
+            // Reflect what dgVoodoo.conf currently says. The stored value is an
+            // ordinal, and ordinals move when displays change, so map it back
+            // through the CURRENT enumeration rather than trusting it blindly.
+            if (haveConf)
+            {
+                int? current = DgVoodooConfig.ReadAdapterOrdinal(gameDir);
+                if (current.HasValue)
+                {
+                    for (int i = 0; i < _gpuAdapters.Count; i++)
+                    {
+                        if (_gpuAdapters[i].DgVoodooOrdinal == current.Value)
+                        {
+                            ComboGpu.SelectedIndex = i + 1; // 0 is Automatic
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Windows per-app preference, keyed on the resolved psobb.exe.
+            string exe = Path.Combine(gameDir, "psobb.exe");
+            ComboWindowsGpu.SelectedIndex = 0;
+            ComboWindowsGpu.IsEnabled = File.Exists(exe);
+            if (ComboWindowsGpu.IsEnabled)
+            {
+                int? pref = WindowsGpuPreference.Read(exe);
+                if (pref.HasValue && pref.Value >= 0 && pref.Value <= 2)
+                    ComboWindowsGpu.SelectedIndex = pref.Value;
+            }
+        }
+
+        private void SaveGpuSettings(string gameDir)
+        {
+            // dgVoodoo adapter. Index 0 is Automatic -> "all".
+            if (DgVoodooConfig.Exists(gameDir) && ComboGpu.IsEnabled)
+            {
+                int idx = ComboGpu.SelectedIndex;
+                if (idx <= 0)
+                {
+                    DgVoodooConfig.SetAutomatic(gameDir);
+                }
+                else if (idx - 1 < _gpuAdapters.Count)
+                {
+                    // Re-resolve by NAME at save time. The ordinal captured when
+                    // the window opened could already be stale if displays
+                    // changed in between, and a wrong ordinal crashes the client.
+                    var chosen = _gpuAdapters[idx - 1];
+                    int? ordinal = GpuAdapters.ResolveOrdinal(chosen.Name);
+                    if (ordinal.HasValue)
+                        DgVoodooConfig.SetAdapterOrdinal(gameDir, ordinal.Value);
+                    else
+                        DgVoodooConfig.SetAutomatic(gameDir);
+                }
+            }
+
+            // Windows per-app preference.
+            string exe = Path.Combine(gameDir, "psobb.exe");
+            if (File.Exists(exe) && ComboWindowsGpu.IsEnabled)
+            {
+                int pref = ComboWindowsGpu.SelectedIndex;
+                if (pref >= 0 && pref <= 2)
+                    WindowsGpuPreference.Write(exe, pref);
             }
         }
 
