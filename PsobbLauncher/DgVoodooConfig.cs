@@ -102,8 +102,6 @@ namespace PsobbLauncher
             return true;
         }
 
-PLACEHOLDER_MARKER
-
         // --- remembering WHICH card was chosen ---------------------------
         // Stored as the adapter's NAME in a sidecar file beside dgVoodoo.conf,
         // never as an ordinal. Two reasons:
